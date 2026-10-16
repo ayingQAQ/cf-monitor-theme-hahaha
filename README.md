@@ -4,7 +4,9 @@
 
 ![hahaha 主题预览](preview.png)
 
-预览使用演示节点。此项目面向 CF-Server-Monitor；原 Monitor 主题及其仓库独立维护。
+预览使用演示节点。
+
+本主题由 [Monitor 版 hahaha](https://github.com/ayingQAQ/monitor-hahaha) 移植，适配 [CF-Server-Monitor 原仓库](https://github.com/huilang-me/CF-Server-Monitor)。原版与 CF 版独立维护。
 
 ## 功能
 
@@ -14,36 +16,6 @@
 - 后台控制明暗外观、中英文、标题及显示开关；公告和墨水色读取 `theme_options`。
 - 同源 Cookie/JWT、跨源 WebSocket token、按后端缓存 Turnstile 凭证。
 - 实时数据仅通过 WebSocket；首页每秒合并更新，隐藏页面关闭连接，无 REST 定时轮询、无悬停历史预取。
-
-## 本地开发
-
-需要 Node.js 22.12+ 或 24+、npm。
-
-```powershell
-npm ci
-$env:CF_BACKEND = 'http://127.0.0.1:8788'
-npm run dev
-```
-
-`CF_BACKEND` 仅用于本地代理。后端需自行启动，建议使用隔离的官方 Wrangler + D1 环境，不要连接正在使用的生产站点。未设置时按当前 origin 请求 API。
-
-```powershell
-npm run build
-```
-
-## 在 Worker 内安装
-
-`npm run build` 的产物严格只有：
-
-```text
-dist/
-├── index.html
-└── assets/
-```
-
-将这两项放到独立主题仓库的构建分支。CF 内置后台的主题地址使用 `https://github.com/ayingQAQ/cf-monitor-theme-hahaha/tree/dist`；安装由内置后台接管。**不使用旧 Monitor 的 theme.json 或 theme.tar.gz。**
-
-国旗和系统图标从所属后端的 `/flags/`、`/os-icons/` 读取；字体、纸纹、脚本及许可证在主题的 `assets/` 中。Worker 的标题、背景、自定义 head 与脚本注入保持生效；管理入口始终为对应 Worker 的 `/admin#/admin`。
 
 ## GitHub Pages / 独立静态部署
 
