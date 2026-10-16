@@ -1,0 +1,15 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+.env
+.env.local
+.vite/
+coverage/
+.nyc_output/
+.cache/
+test-results/
+playwright-report/
+theme.tar.gz
+theme.sha256
+.playwright-mcp/

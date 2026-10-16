@@ -1,0 +1,55 @@
+name: Build theme
+on:
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: static-dist
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Build Worker or configured static theme
+        shell: bash
+        run: |
+          if [ -n "$API_BASE" ]; then
+            npm run build:github-page
+          else
+            npm run build
+          fi
+        env:
+          API_BASE: ${{ secrets.API_BASE }}
+          TITLE: ${{ secrets.TITLE }}
+          BACKGROUND_IMAGE: ${{ secrets.BACKGROUND_IMAGE }}
+          CSP_API: ${{ secrets.CSP_API }}
+          CSP_STATIC: ${{ secrets.CSP_STATIC }}
+      - name: Append build to dist history
+        shell: bash
+        run: |
+          set -euo pipefail
+          git log -1 --format=%B > "$RUNNER_TEMP/source-message.txt"
+          cp -R dist "$RUNNER_TEMP/hahaha-build"
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          if git ls-remote --exit-code --heads origin dist >/dev/null 2>&1; then
+            git fetch origin dist
+            git switch -C dist FETCH_HEAD
+          else
+            git switch --orphan dist
+          fi
+          git rm -r --ignore-unmatch .
+          cp -R "$RUNNER_TEMP/hahaha-build/." .
+          git add index.html assets
+          git commit --allow-empty -F "$RUNNER_TEMP/source-message.txt"
+          git push origin HEAD:dist
