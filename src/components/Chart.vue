@@ -25,9 +25,16 @@ const hover = ref<number>();
 const hovered = computed(() =>
   hover.value === undefined ? undefined : p.rows[hover.value],
 );
+const gpuRows = new WeakMap<HistoryRow, ReturnType<typeof gpus>>();
 function value(row: HistoryRow, key: string) {
-  if (key.startsWith("gpu:"))
-    return metric(gpus(row.gpu_info).find((v) => v.id === key.slice(4))?.info);
+  if (key.startsWith("gpu:")) {
+    let parsed = gpuRows.get(row);
+    if (!parsed) {
+      parsed = gpus(row.gpu_info);
+      gpuRows.set(row, parsed);
+    }
+    return metric(parsed.find((v) => v.id === key.slice(4))?.info);
+  }
   if (key.startsWith("disk."))
     return metric(
       (row.disk as Record<string, unknown> | undefined)?.[key.slice(5)],
@@ -36,27 +43,30 @@ function value(row: HistoryRow, key: string) {
 }
 const lo = computed(() => p.rows[0]?.timestamp || 0),
   hi = computed(() => p.rows.at(-1)?.timestamp || lo.value + 1);
-const maxY = computed(
-  () =>
-    p.max ||
-    Math.max(
-      1,
-      ...p.rows.flatMap((r) =>
-        p.series
-          .map((s) => value(r, s.key))
-          .filter((v): v is number => typeof v === "number"),
-      ),
-    ) * 1.12,
+const seriesData = computed(() =>
+  p.series.map((s) => ({
+    ...s,
+    values: p.rows.map((r) => value(r, s.key)),
+  })),
 );
+const maxY = computed(() => {
+  if (p.max) return p.max;
+  let largest = 1;
+  for (const series of seriesData.value)
+    for (const n of series.values)
+      if (typeof n === "number" && n > largest) largest = n;
+  return largest * 1.12;
+});
 const x = (ts: number) =>
   56 + ((ts - lo.value) / Math.max(1, hi.value - lo.value)) * 466;
 const y = (n: number) => 190 - (Math.max(0, n) / maxY.value) * 154;
 const paths = computed(() =>
-  p.series.map((s) => {
+  seriesData.value.map((s) => {
     let d = "",
       pen = false;
-    for (const r of p.rows) {
-      const n = value(r, s.key);
+    for (let i = 0; i < p.rows.length; i++) {
+      const r = p.rows[i],
+        n = s.values[i];
       if (typeof n !== "number") {
         pen = false;
         continue;
@@ -64,7 +74,7 @@ const paths = computed(() =>
       d += `${pen ? "L" : "M"}${x(r.timestamp).toFixed(1)} ${y(n).toFixed(1)} `;
       pen = true;
     }
-    return { ...s, d };
+    return { key: s.key, name: s.name, color: s.color, d };
   }),
 );
 function time(ts: number) {

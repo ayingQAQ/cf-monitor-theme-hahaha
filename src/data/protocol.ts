@@ -99,38 +99,51 @@ export class HistoryCache {
   private key(b: string, id: string, h: number, auth: string) {
     return JSON.stringify([b, id, h, auth]);
   }
+  private totalBytes = 0;
+  private drop(key: string) {
+    const entry = this.entries.get(key);
+    if (entry) this.totalBytes -= entry.bytes;
+    this.entries.delete(key);
+  }
+  prune(now = Date.now()) {
+    for (const [key, entry] of this.entries)
+      if (now - entry.at > this.ttl) this.drop(key);
+  }
   get size() {
+    this.prune();
     return this.entries.size;
   }
   get bytes() {
-    return [...this.entries.values()].reduce((s, v) => s + v.bytes, 0);
+    this.prune();
+    return this.totalBytes;
   }
   get(b: string, id: string, h: number, auth: string) {
+    this.prune();
     const k = this.key(b, id, h, auth),
       e = this.entries.get(k);
     if (!e) return;
-    if (Date.now() - e.at > this.ttl) {
-      this.entries.delete(k);
-      return;
-    }
     this.entries.delete(k);
     this.entries.set(k, e);
     return e.rows;
   }
   set(b: string, id: string, h: number, auth: string, rows: HistoryRow[]) {
+    this.prune();
     const key = this.key(b, id, h, auth),
       bytes = new TextEncoder().encode(JSON.stringify(rows)).length;
-    this.entries.delete(key);
+    this.drop(key);
     if (bytes > this.maxBytes) return;
     this.entries.set(key, { rows, bytes, at: Date.now() });
-    while (this.size > this.capacity || this.bytes > this.maxBytes)
-      this.entries.delete(this.entries.keys().next().value!);
+    this.totalBytes += bytes;
+    while (this.entries.size > this.capacity || this.totalBytes > this.maxBytes)
+      this.drop(this.entries.keys().next().value!);
   }
   clear(base?: string) {
-    if (!base) this.entries.clear();
-    else
+    if (!base) {
+      this.entries.clear();
+      this.totalBytes = 0;
+    } else
       for (const key of this.entries.keys())
-        if (JSON.parse(key)[0] === base) this.entries.delete(key);
+        if (JSON.parse(key)[0] === base) this.drop(key);
   }
 }
 export const online = (s: Server, now = Date.now()) =>

@@ -19,7 +19,10 @@ export class LiveConnection {
   private attempts = 0;
   private active = false;
   private deadline = 0;
-  constructor(private o: Options) {}
+  private ids: Set<string>;
+  constructor(private o: Options) {
+    this.ids = new Set(o.ids);
+  }
   private status(s: LiveState) {
     this.state = s;
     this.o.onState(s);
@@ -73,11 +76,10 @@ export class LiveConnection {
         try {
           const m = JSON.parse(e.data);
           if (m.type === "batchUpdate" && Array.isArray(m.updates)) {
-            const own = new Set(this.o.ids);
             this.o.onSamples(
               m.updates.filter(
                 (v: { serverId: string; samples: Sample[] }) =>
-                  own.has(String(v.serverId)) && Array.isArray(v.samples),
+                  this.ids.has(String(v.serverId)) && Array.isArray(v.samples),
               ),
             );
           }

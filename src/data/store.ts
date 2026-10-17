@@ -1,6 +1,6 @@
 import { shallowReactive, markRaw, ref, computed, watch } from "vue";
 import { clock } from "./clock";
-import { Client, ApiError } from "./client";
+import { Client, ApiError, historyCache } from "./client";
 import { LiveConnection, type LiveState } from "./live";
 import { mergeSamples, online, dashboardStats } from "./protocol";
 import type { Server, Config, Stats, SysConfig, Sample } from "./types";
@@ -153,6 +153,12 @@ export function subscribe(
   }
   const minutes = Number(s.config?.frontend_ws_timeout_minutes) || 0;
   if (minutes > 0 && !s.deadline) s.deadline = Date.now() + minutes * 60000;
+  const current = new Map(
+    (id
+      ? [s.details.get(id)].filter((v): v is Server => Boolean(v))
+      : s.servers
+    ).map((v) => [v.id, v]),
+  );
   let pending = new Map<string, Server>(),
     timer: ReturnType<typeof setTimeout> | undefined;
   const flush = () => {
@@ -193,11 +199,10 @@ export function subscribe(
     onSamples: (updates) => {
       for (const u of updates) {
         const key = String(u.serverId),
-          old =
-            pending.get(key) ||
-            (id ? s.details.get(key) : s.servers.find((v) => v.id === key));
+          old = current.get(key);
         if (old) {
           const next = mergeSamples(old, u.samples);
+          current.set(key, next);
           pending.set(key, next);
           onLive?.(next, u.samples);
         }
@@ -261,6 +266,7 @@ export async function detail(
   }
 }
 export function leave() {
+  historyCache.prune();
   ++generation;
   stopLive();
 }
