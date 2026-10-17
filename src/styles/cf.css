@@ -455,3 +455,26 @@ body:has(style[data-background]) .desk {
 .chart-tooltip time {
   flex-basis: 100%;
 }
+
+@media (max-width: 720px) {
+  .masthead {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+  }
+  .masthead nav {
+    width: auto;
+    justify-self: end;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .masthead nav .ink-button {
+    font-size: 17px;
+    white-space: nowrap;
+  }
+  .masthead .brand-doodle {
+    flex-shrink: 0;
+  }
+}
