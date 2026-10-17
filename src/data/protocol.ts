@@ -212,3 +212,27 @@ export function appendLiveHistory(
       )
     : merged;
 }
+
+/** Backend stats use cumulative counters; the monthly note uses monthly counters. */
+export function monthlyTraffic(servers: Server[]) {
+  return servers.reduce(
+    (sum, s) => sum + (s.net_rx_monthly || 0) + (s.net_tx_monthly || 0),
+    0,
+  );
+}
+export function dashboardStats(
+  servers: Server[],
+  now = Date.now(),
+  total = servers.length,
+) {
+  const live = servers.filter((s) => online(s, now));
+  return {
+    total,
+    online: live.length,
+    offline: total - live.length,
+    globalSpeedIn: live.reduce((n, s) => n + (s.net_in_speed || 0), 0),
+    globalSpeedOut: live.reduce((n, s) => n + (s.net_out_speed || 0), 0),
+    globalNetRx: servers.reduce((n, s) => n + (s.net_rx || 0), 0),
+    globalNetTx: servers.reduce((n, s) => n + (s.net_tx || 0), 0),
+  };
+}

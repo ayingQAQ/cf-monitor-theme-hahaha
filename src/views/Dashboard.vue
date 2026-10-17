@@ -17,7 +17,7 @@ import {
   t,
   type Source,
 } from "../data/store";
-import { quantity } from "../data/protocol";
+import { quantity, monthlyTraffic } from "../data/protocol";
 import Globe from "../components/Globe.vue";
 import Paper from "../components/Paper.vue";
 import NodeCard from "../components/NodeCard.vue";
@@ -52,8 +52,7 @@ const stats = computed(() =>
     (a, s) => ({
       total: a.total + (s.stats?.total || 0),
       online: a.online + (s.stats?.online || 0),
-      traffic:
-        a.traffic + (s.stats?.globalNetTx || 0) + (s.stats?.globalNetRx || 0),
+      traffic: a.traffic + monthlyTraffic(s.servers),
       speedIn: a.speedIn + (s.stats?.globalSpeedIn || 0),
       speedOut: a.speedOut + (s.stats?.globalSpeedOut || 0),
     }),

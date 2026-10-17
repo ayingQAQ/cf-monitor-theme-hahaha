@@ -2,7 +2,7 @@ import { shallowReactive, markRaw, ref, computed, watch } from "vue";
 import { clock } from "./clock";
 import { Client, ApiError } from "./client";
 import { LiveConnection, type LiveState } from "./live";
-import { mergeSamples, online } from "./protocol";
+import { mergeSamples, online, dashboardStats } from "./protocol";
 import type { Server, Config, Stats, SysConfig, Sample } from "./types";
 export interface Source {
   index: number;
@@ -74,6 +74,7 @@ watch(clock, () => {
     const n = s.servers.filter((v) => online(v, clock.value)).length;
     if (n !== s.stats.online)
       s.stats = { ...s.stats, online: n, offline: s.stats.total - n };
+    if (s.client.listSnapshot) s.client.listSnapshot.stats = s.stats;
   }
 });
 export const retryRequest = ref<{ index: number; sequence: number } | null>(
@@ -169,29 +170,11 @@ export function subscribe(
       s.servers = s.servers.map((v) => patches.get(v.id) || v);
       if (s.client.listSnapshot) s.client.listSnapshot.servers = s.servers;
       if (s.stats) {
-        const now = Date.now(),
-          count = s.servers.filter((v) => online(v, now)).length;
         s.stats = {
           ...s.stats,
-          online: count,
-          offline: s.stats.total - count,
-          globalSpeedIn: s.servers.reduce(
-            (n, v) => n + (v.net_in_speed || 0),
-            0,
-          ),
-          globalSpeedOut: s.servers.reduce(
-            (n, v) => n + (v.net_out_speed || 0),
-            0,
-          ),
-          globalNetRx: s.servers.reduce(
-            (n, v) => n + (v.net_rx_monthly || 0),
-            0,
-          ),
-          globalNetTx: s.servers.reduce(
-            (n, v) => n + (v.net_tx_monthly || 0),
-            0,
-          ),
+          ...dashboardStats(s.servers, Date.now(), s.stats.total),
         };
+        if (s.client.listSnapshot) s.client.listSnapshot.stats = s.stats;
       }
     }
   };
