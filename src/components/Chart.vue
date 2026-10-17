@@ -22,6 +22,9 @@ const p = withDefaults(
   { unit: "" },
 );
 const hover = ref<number>();
+const hovered = computed(() =>
+  hover.value === undefined ? undefined : p.rows[hover.value],
+);
 function value(row: HistoryRow, key: string) {
   if (key.startsWith("gpu:"))
     return metric(gpus(row.gpu_info).find((v) => v.id === key.slice(4))?.info);
@@ -106,67 +109,69 @@ function label(v: unknown) {
       <h3>{{ title }}</h3>
       <span>{{ t("手写记录", "HISTORY") }}</span>
     </div>
-    <svg
-      v-if="rows.length"
-      class="hand-chart"
-      viewBox="0 0 550 235"
-      role="img"
-      :aria-label="title"
-      @pointermove="move"
-      @pointerleave="hover = undefined"
-    >
-      <template v-if="!mini">
-        <g v-for="i in 5" :key="i">
-          <Stroke
-            :d="`M56 ${36 + (i - 1) * 38.5} L522 ${36 + (i - 1) * 38.5}`"
-            color="#a79c7e38"
-            :weight="0.65"
-            :roughness="0.4"
-          />
-          <text x="50" :y="40 + (i - 1) * 38.5" text-anchor="end">
-            {{ ((maxY * (5 - i)) / 4).toFixed(maxY < 10 ? 1 : 0) }}{{ unit }}
-          </text>
-        </g>
-        <Stroke
-          d="M56 32 L56 191 L523 191"
-          color="var(--ink)"
-          :roughness="0.6"
-          :weight="1.2"
-        />
-        <text x="56" y="222">{{ time(lo) }}</text>
-        <text x="522" y="222" text-anchor="end">{{ time(hi) }}</text>
-      </template>
-      <Stroke
-        v-for="s in paths"
-        :key="s.key"
-        :d="s.d"
-        :color="s.color"
-        :weight="1.3"
-        :roughness="0.4"
-      />
-      <line
-        v-if="hover !== undefined && !mini"
-        :x1="x(rows[hover].timestamp)"
-        :x2="x(rows[hover].timestamp)"
-        y1="30"
-        y2="191"
-        stroke="var(--muted)"
-        stroke-dasharray="3 4"
-      />
-    </svg>
-    <p v-else class="empty-history">
-      {{ t("这段时间还没有记录", "No samples in this range") }}
-    </p>
-    <div v-if="!mini" class="chart-legend">
-      <span v-for="s in series" :key="s.key" :style="{ color: s.color }"
-        >{{ s.name
-        }}<template v-if="hover !== undefined">
-          · {{ label(value(rows[hover], s.key)) }}</template
-        ></span
+    <div :class="mini ? 'mini-plot' : 'chart-plot'">
+      <svg
+        v-if="rows.length || !mini"
+        class="hand-chart"
+        viewBox="0 0 550 235"
+        role="img"
+        :aria-label="title"
+        @pointermove="move"
+        @pointerleave="hover = undefined"
       >
+        <template v-if="!mini">
+          <g v-for="i in 5" :key="i">
+            <Stroke
+              :d="`M56 ${36 + (i - 1) * 38.5} L522 ${36 + (i - 1) * 38.5}`"
+              color="#a79c7e38"
+              :weight="0.65"
+              :roughness="0.4"
+            />
+            <text x="50" :y="40 + (i - 1) * 38.5" text-anchor="end">
+              {{ ((maxY * (5 - i)) / 4).toFixed(maxY < 10 ? 1 : 0) }}{{ unit }}
+            </text>
+          </g>
+          <Stroke
+            d="M56 32 L56 191 L523 191"
+            color="var(--ink)"
+            :roughness="0.6"
+            :weight="1.2"
+          />
+          <text x="56" y="222">{{ time(lo) }}</text>
+          <text x="522" y="222" text-anchor="end">{{ time(hi) }}</text>
+        </template>
+        <Stroke
+          v-for="s in paths"
+          :key="s.key"
+          :d="s.d"
+          :color="s.color"
+          :weight="1.3"
+          :roughness="0.4"
+        />
+        <line
+          v-if="hovered && !mini"
+          :x1="x(hovered.timestamp)"
+          :x2="x(hovered.timestamp)"
+          y1="30"
+          y2="191"
+          stroke="var(--muted)"
+          stroke-dasharray="3 4"
+        />
+      </svg>
+      <p v-if="!rows.length" class="empty-history">
+        {{ t("这段时间还没有记录", "No samples in this range") }}
+      </p>
     </div>
-    <small v-if="hover !== undefined && !mini">{{
-      time(rows[hover].timestamp)
-    }}</small></component
+    <div v-if="!mini" class="chart-legend">
+      <span v-for="s in series" :key="s.key" :style="{ color: s.color }">{{
+        s.name
+      }}</span>
+    </div>
+    <div v-if="hovered && !mini" class="chart-tooltip">
+      <time>{{ time(hovered.timestamp) }}</time>
+      <span v-for="s in series" :key="s.key" :style="{ color: s.color }">
+        {{ s.name }} · {{ label(value(hovered, s.key)) }}
+      </span>
+    </div></component
   >
 </template>

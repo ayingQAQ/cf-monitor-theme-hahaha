@@ -147,7 +147,11 @@ function retry(index: number, continued = false) {
       </section>
       <RouterView />
       <footer class="cf-footer">
-        <span>hahaha · 0.1.0</span
+        <a
+          href="https://github.com/ayingQAQ/cf-monitor-theme-hahaha"
+          target="_blank"
+          rel="noopener"
+          >hahaha · 0.1.0</a
         ><a
           href="https://github.com/huilang-me/CF-Server-Monitor/"
           target="_blank"

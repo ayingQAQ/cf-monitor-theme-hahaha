@@ -178,7 +178,11 @@ const gpu = computed(() => {
     color: palette[i % palette.length],
   }));
 });
-const hasIO = computed(() => rows.value.some((r) => diskIO(r.disk)));
+const hasIO = computed(
+  () =>
+    Boolean(diskIO(server.value?.disk)) ||
+    rows.value.some((r) => diskIO(r.disk)),
+);
 const basic = (key: string, name: string, color = palette[0]): Series => ({
   key,
   name,
@@ -289,7 +293,12 @@ onBeforeUnmount(() => {
         >{{ t("前往登录", "Open login") }} →</a
       ></Paper
     >
-    <p v-if="loading" class="range-loading" role="status">
+    <p
+      class="range-loading"
+      :class="{ 'is-loading': loading }"
+      role="status"
+      :aria-hidden="!loading"
+    >
       {{ t("正在翻阅", "Loading") }} {{ range(hours) }}…
       <span v-if="rows.length"
         >{{ t("当前仍显示", "Still showing") }} {{ range(shownHours) }}</span

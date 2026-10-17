@@ -55,6 +55,19 @@ export function duration(ms: number, zh: boolean) {
 }
 export function osIcon(os: string | undefined) {
   const v = (os || "").toLowerCase();
+  const aliases: Array<[RegExp, string]> = [
+    [/opensuse|suse/, "openSUSE"],
+    [/manjaro/, "manjaro-"],
+    [/kali/, "kail"],
+    [/red[ -]?hat|rhel/, "redhat"],
+    [/alma/, "alma"],
+    [/macos|mac os|darwin|os x/, "macos"],
+    [/nixos|nix os/, "nix"],
+    [/alibaba|alinux|aliyun/, "alibaba"],
+    [/openwrt|immortalwrt/, "openwrt"],
+    [/opencloud|open cloud/, "opencloud"],
+  ];
+  const alias = aliases.find(([pattern]) => pattern.test(v))?.[1];
   const known = [
     "debian",
     "ubuntu",
@@ -62,14 +75,11 @@ export function osIcon(os: string | undefined) {
     "centos",
     "fedora",
     "rocky",
-    "alma",
     "arch",
     "gentoo",
     "oracle",
-    "macos",
-    "redhat",
-    "nix",
     "mint",
   ];
-  return `os-icons/os-${known.find((s) => v.includes(s)) || "unknown"}.svg`;
+  const name = alias || known.find((s) => v.includes(s));
+  return name ? `os-icons/os-${name}.svg` : "";
 }

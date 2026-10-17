@@ -2,7 +2,7 @@
 import { clock } from "../data/clock";
 import { computed } from "vue";
 import { useRouter } from "vue-router";
-import type { Server, HistoryRow } from "../data/types";
+import type { Server } from "../data/types";
 import { t, lang, type Source } from "../data/store";
 import {
   bytesMB,
@@ -11,8 +11,6 @@ import {
   online,
   gpus,
   diskIO,
-  metric,
-  formatLoss,
 } from "../data/protocol";
 import {
   traffic,
@@ -20,7 +18,6 @@ import {
   price,
   expiry,
   duration,
-  osIcon,
 } from "../domain/format";
 import Paper from "./Paper.vue";
 import Flag from "./Flag.vue";
@@ -28,7 +25,7 @@ import Status from "./Status.vue";
 import Icon from "./Icon.vue";
 import Meter from "./Meter.vue";
 import Scribble from "./Scribble.vue";
-import Chart from "./Chart.vue";
+import OsIcon from "./OsIcon.vue";
 const p = defineProps<{ server: Server; source: Source; index: number }>();
 const router = useRouter();
 const isOnline = computed(() => online(p.server, clock.value));
@@ -60,25 +57,6 @@ const metrics = computed(() => [
 ]);
 const gpu = computed(() => gpus(p.server.gpu_info)),
   io = computed(() => diskIO(p.server.disk));
-const windowRows = computed<HistoryRow[]>(() =>
-  (p.server.ping || []).map((r) => ({ timestamp: r.ts, ...r })),
-);
-const probes = computed(() =>
-  ["ct", "cu", "cm", "bd"]
-    .filter((k) => windowRows.value.some((r) => metric(r[k]) !== undefined))
-    .map((key, i) => ({
-      key,
-      name: String(
-        p.source.config?.[`custom_${key}_name`] || key.toUpperCase(),
-      ),
-      color: ["var(--blue)", "var(--green)", "var(--ochre)", "var(--red)"][i],
-    })),
-);
-const losses = computed(() =>
-  ["ct", "cu", "cm", "bd"].filter(
-    (k) => metric(p.server[`loss_${k}`]) !== undefined,
-  ),
-);
 </script>
 <template>
   <Paper
@@ -101,12 +79,10 @@ const losses = computed(() =>
       "
     />
     <div class="node-subtitle">
-      <img
-        class="os-icon"
-        :src="source.client.asset(osIcon(server.os))"
-        alt=""
-        @error="($event.target as HTMLImageElement).hidden = true"
-      />{{ server.server_group || t("未分组", "Ungrouped") }} /
+      <OsIcon :os="server.os" :client="source.client" />{{
+        server.server_group || t("未分组", "Ungrouped")
+      }}
+      /
       {{ server.os || t("系统未知", "Unknown OS") }}
     </div>
     <div class="card-metrics">
@@ -158,22 +134,8 @@ const losses = computed(() =>
             ? (traffic(server) / trafficLimit(server)) * 100
             : null
         "
-        color="var(--red)" /></template
-    ><template v-if="source.sys.show_three_net_details === true"
-      ><Chart
-        v-if="windowRows.length && probes.length"
-        mini
-        :title="t('延迟窗口', 'Latency window')"
-        :rows="windowRows"
-        :series="probes"
-      />
-      <div v-if="losses.length" class="mini-loss">
-        <span v-for="k in losses" :key="k"
-          >{{ source.config?.[`custom_${k}_name`] || k.toUpperCase() }}
-          {{ formatLoss(server[`loss_${k}`], t("超时", "Timeout")) }}</span
-        >
-      </div></template
-    >
+        color="var(--red)"
+    /></template>
     <div class="billing-note">
       <span v-if="source.sys.show_price !== false">{{
         price(server, lang === "zh")

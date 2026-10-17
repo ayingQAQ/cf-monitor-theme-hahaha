@@ -199,6 +199,9 @@ a {
   pointer-events: none;
 }
 .os-icon {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
   display: inline-block;
   width: 17px;
   height: 17px;
@@ -414,4 +417,41 @@ body:has(style[data-background]) .desk {
     transition: none !important;
     animation: none !important;
   }
+}
+
+/* Keep chart cards stable while history loads and pointer values change. */
+.range-loading {
+  visibility: hidden;
+  height: calc(3em + 24px);
+}
+.range-loading.is-loading {
+  visibility: visible;
+}
+.chart-plot {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 550 / 235;
+  max-height: 400px;
+  margin-top: 17px;
+}
+.chart-plot > .hand-chart {
+  height: 100%;
+  margin-top: 0;
+}
+.chart-plot > .empty-history {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+}
+.chart-tooltip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  z-index: 2;
+  transform: none;
+}
+.chart-tooltip time {
+  flex-basis: 100%;
 }
