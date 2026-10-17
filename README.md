@@ -2,6 +2,16 @@
 
 纸张、手写文字、手绘曲线与缓缓转动的地球。基于 **Vue 3 + TypeScript + Vite + Vue Router**，适配 CF-Server-Monitor 的独立主题，版本 **0.1.0**。
 
+## 主题安装地址
+
+复制以下地址，粘贴到 CF-Server-Monitor 内置后台的主题安装入口：
+
+```text
+https://github.com/ayingQAQ/cf-monitor-theme-hahaha/tree/dist
+```
+
+该地址跟随 `dist` 分支的最新构建，更新可能因缓存稍有延迟。
+
 ![hahaha 主题预览](preview.png)
 
 预览使用演示节点。
