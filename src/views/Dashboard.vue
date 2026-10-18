@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  ref,
-  computed,
-  onMounted,
-  onBeforeUnmount,
-  watch,
-  nextTick,
-} from "vue";
+import { ref, computed, onBeforeUnmount, watch, nextTick } from "vue";
 import {
   dashboard,
   leave,
@@ -24,6 +17,18 @@ import NodeCard from "../components/NodeCard.vue";
 import InkButton from "../components/InkButton.vue";
 import Scribble from "../components/Scribble.vue";
 import Icon from "../components/Icon.vue";
+const loading = ref(true);
+const hasData = computed(() => sources.some((s) => s.stats !== undefined));
+let loadSequence = 0;
+async function loadDashboard(refresh = false, onlyIndex?: number) {
+  const sequence = ++loadSequence;
+  loading.value = true;
+  try {
+    await dashboard(refresh, onlyIndex);
+  } finally {
+    if (sequence === loadSequence) loading.value = false;
+  }
+}
 const search = ref(""),
   country = ref(""),
   group = ref("");
@@ -77,19 +82,19 @@ async function locate(s: Source, id: string) {
 }
 const resume = () => {
   if (document.hidden) leave();
-  else void dashboard(true);
+  else void loadDashboard(true);
 };
-onMounted(() => {
-  void dashboard();
-  document.addEventListener("visibilitychange", resume);
-});
+// Start fetching before child globe/paper components mount.
+void loadDashboard();
+document.addEventListener("visibilitychange", resume);
 onBeforeUnmount(() => {
+  ++loadSequence;
   leave();
   document.removeEventListener("visibilitychange", resume);
 });
-watch(verificationRevision, () => dashboard());
+watch(verificationRevision, () => loadDashboard());
 watch(retryRequest, (r) => {
-  if (r) void dashboard(true, r.index);
+  if (r) void loadDashboard(true, r.index);
 });
 </script>
 <template>
@@ -99,21 +104,31 @@ watch(retryRequest, (r) => {
       <Paper class="online-note" color="yellow" tape
         ><h2>{{ t("此刻，在线的朋友", "Friends online, right now") }}</h2>
         <div class="online-count">
-          <strong>{{ stats.online }}</strong
-          ><span>/ {{ stats.total }} {{ t("台", "nodes") }}</span
+          <strong>{{ hasData ? stats.online : "—" }}</strong
+          ><span
+            >/ {{ hasData ? stats.total : "—" }} {{ t("台", "nodes") }}</span
           ><Icon name="sun" :size="40" />
         </div>
         <Scribble color="var(--green)" />
         <p>
-          {{ stats.total - stats.online }}
-          {{ t("台离线，正在等它们回来", "offline, waiting for their return") }}
+          <template v-if="hasData"
+            >{{ stats.total - stats.online }}
+            {{
+              t("台离线，正在等它们回来", "offline, waiting for their return")
+            }}</template
+          >
+          <template v-else>{{
+            loading
+              ? t("正在读取节点数据…", "Loading node data…")
+              : t("节点数据暂不可用", "Node data unavailable")
+          }}</template>
         </p></Paper
       ><Paper class="traffic-summary" color="blue"
         ><h2>{{ t("这个月，走过的流量", "Traffic, this month") }}</h2>
-        <strong>{{ quantity(stats.traffic) }}</strong>
+        <strong>{{ hasData ? quantity(stats.traffic) : "—" }}</strong>
         <p>
-          ↓ {{ quantity(stats.speedIn, "B/s") }} · ↑
-          {{ quantity(stats.speedOut, "B/s") }}
+          ↓ {{ hasData ? quantity(stats.speedIn, "B/s") : "—" }} · ↑
+          {{ hasData ? quantity(stats.speedOut, "B/s") : "—" }}
         </p>
         <small>{{
           t("数字来自 CF-Server-Monitor", "From CF-Server-Monitor")
@@ -172,9 +187,11 @@ watch(retryRequest, (r) => {
     <Paper v-if="!visible.length" class="message"
       ><p>
         {{
-          sources.some((s) => s.loading)
+          loading
             ? t("正在翻开记录簿…", "Opening the scrapbook…")
-            : t("这里还没有节点", "No matching nodes")
+            : hasData
+              ? t("这里还没有节点", "No matching nodes")
+              : t("节点数据暂不可用", "Node data unavailable")
         }}
       </p></Paper
     >
