@@ -69,6 +69,7 @@ export function osIcon(os: string | undefined) {
   ];
   const alias = aliases.find(([pattern]) => pattern.test(v))?.[1];
   const known = [
+    "alpine",
     "debian",
     "ubuntu",
     "windows",
